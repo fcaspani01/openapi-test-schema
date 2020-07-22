@@ -1,0 +1,313 @@
+openapi: '3.0.0'
+info:
+  title: Users
+  description: Serpe API for Users microservice
+  contact:
+    name: Dario Belotti
+    email: dario.belotti@serioplast.com
+  version: '0.0.1'
+paths:
+  /users/token:
+    summary: Resource available for login purpose
+    description: |
+      Use this resource to let a user login in the system. The user **must provide** username and password to login.
+    post:
+      operationId: api.token.get_token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/body'
+        required: true
+      responses:
+        "200":
+          description: Valid credentials, tokens provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+        "4XX":
+          description: Invalid credential provided
+  /users/token-refresh:
+    post:
+      operationId: api.token.refresh_token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/body_1'
+        required: true
+      responses:
+        "200":
+          description: Successful refresh
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+        "4XX":
+          description: Could not refresh
+  /users:
+    get:
+      security:
+        - bearerAuth: []
+      parameters:
+      - name: limit
+        in: query
+        description: The numbers of items to return.
+        required: false
+        style: form
+        explode: true
+        schema:
+          minimum: 1
+          type: integer
+          default: 25
+      - name: identity-provider
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: List of users has been provided
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/user'
+        "400":
+          description: Unable to generate the list of users
+    post:
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/userBody'
+      responses:
+        "200":
+          description: User created
+        "400":
+          description: User cannot be created
+  /users/{username}:
+    summary: Get a user by username
+    description: |
+      Use this resource to retrieve an user by its username.
+    get:
+      security:
+        - bearerAuth: []
+      parameters:
+      - name: username
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: recovering-email
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: User retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+        "400":
+          description: Unable to retrieve the user
+    put:
+      security:
+        - bearerAuth: []
+      parameters:
+      - name: username
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: recovering-email
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/user'
+        required: true
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+        "400":
+          description: User cannot be updated
+  /users/password-reset-request:
+    post:
+      operationId: api.users.password_reset_request
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/body_2'
+        required: true
+      responses:
+        "200":
+          description: Password request has been sent
+  /users/password-reset:
+    post:
+      operationId: api.users.password_reset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/body_3'
+        required: true
+      responses:
+        "200":
+          description: Password reset completed
+components:
+  schemas:
+    user:
+      title: user
+      required:
+      - password
+      - recovering_email
+      - username
+      type: object
+      properties:
+        username:
+          type: string
+          example: dbelotti01
+        password:
+          type: string
+          example: serioplast
+        recovering_email:
+          type: string
+          format: email
+          example: dario.belotti@serioplast.com
+        identity_provider:
+          type: string
+          enum:
+          - Serioplast
+          - Seriomac
+          - Seriomould
+          - Centroplastica
+      description: A single system user
+      x-examples: {}
+    error:
+      required:
+      - code
+      - message
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    body:
+      required:
+      - password
+      - username
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    inline_response_200:
+      properties:
+        access-token:
+          type: string
+        refresh-token:
+          type: string
+    body_1:
+      required:
+      - refresh-token
+      type: object
+      properties:
+        refresh-token:
+          type: string
+    inline_response_200_1:
+      properties:
+        access-token:
+          type: string
+    body_2:
+      required:
+      - username
+      type: object
+      properties:
+        username:
+          type: string
+    body_3:
+      required:
+      - password
+      - username
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+  responses:
+    NotFound:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error'
+    Unauthenticated:
+      description: Unauthenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/error'
+  parameters:
+    offsetParam:
+      name: offset
+      in: query
+      description: The number of items to skip before starting to collect the result
+        set.
+      required: false
+      style: form
+      explode: true
+      schema:
+        minimum: 0
+        type: integer
+    limitParam:
+      name: limit
+      in: query
+      description: The numbers of items to return.
+      required: false
+      style: form
+      explode: true
+      schema:
+        minimum: 1
+        type: integer
+        default: 25
+  requestBodies:
+    userBody:
+      description: A JSON object containing user information
+
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/user'
+      required: true
+  securitySchemes:
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT    # optional, arbitrary value for documentation purposes
+      x-bearerInfoFunc: api.token.decode_token
